@@ -50,36 +50,70 @@ class FDTD:
         self.n_meshz = 90
         self.n_w = 5
         self.n_w2= 30
-        self.d_PMLx = n_meshx/10.
-        self.d_PMLy = n_meshy/10.
-        self.d_PMLz = n_meshz/10.
+
+        self.set_pml()
+        self.set_start_idx(1)
+        self.set_end_idx()
+        self.make_diff_table(self.n_w, self.n_w2, self.n_L, self.n_H)
+        self.make_eps_table(self.eps_0)
+        self.set_differential()
+        self.set_E_H_for_plot()
+
+    def set_pml(self):
+        self.d_PMLx = self.n_meshx/10.
+        self.d_PMLy = self.n_meshy/10.
+        self.d_PMLz = self.n_meshz/10.
+    
+    def set_start_idx(self, start):
         #Start & End
-        self.xs = 1
-        self.xe = n_meshx - 1
-        self.ys = 1
-        self.ye = n_meshy - 1
-        self.zs = 1
-        self.ze = n_meshz - 1
+        self.xs = start
+        self.ys = start
+        self.zs = start
 
-        #diff_table & eps_table
-        diff_table = np.zeros([n_meshx, n_meshy, n_meshz])
-        diff_table[0:n_meshx, 0:n_meshy, 0:n_meshz-n_w2] = n_L 
-        diff_table[0:n_meshx, 0:n_meshy, n_meshz-n_w2:n_meshz] = n_H
-        eps = np.zeros([n_meshx, n_meshy, n_meshz])
-        eps[0:n_meshx, 0:n_meshy, 0:n_meshz] = np.power(diff_table[0:n_meshx, 0:n_meshy, 0:n_meshz], 2) * eps_0       
+    def set_end_idx(self):
+        self.xe = self.n_meshx - self.xs
+        self.ye = self.n_meshy - self.ys
+        self.ze = self.n_meshz - self.zs
 
+
+    def make_diff_table(self, n_w, n_w2, n_L, n_H):
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
+        self.diff_table = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.diff_table[0:n_meshx, 0:n_meshy, 0:n_meshz-n_w2] = n_L 
+        self.diff_table[0:n_meshx, 0:n_meshy, n_meshz-n_w2:n_meshz] = n_H
+
+    def make_eps_table(self, eps_0):
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
+        self.eps = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.eps[0:n_meshx, 0:n_meshy, 0:n_meshz] = np.power(self.diff_table[0:n_meshx, 0:n_meshy, 0:n_meshz], 2) * eps_0       
+
+    def set_differential(self):
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
+        area_x = self.area_x
+        area_y = self.area_y
+        area_z = self.area_z
         #dt = 1.0 * 10**(-18)
-        dx = 2*area_x/n_meshx
-        dy = 2*area_y/n_meshy
-        dz = 2*area_z/n_meshz 
+        self.dx = 2*area_x/n_meshx
+        self.dy = 2*area_y/n_meshy
+        self.dz = 2*area_z/n_meshz 
 
+    def set_E_H_for_plot(self):
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
         #for display
-        H_ = np.zeros([n_meshx, n_meshy, n_meshz])
-        E_max = []
-        H_max = []
-        Exy_for_plt = np.zeros([n_meshx, n_meshy])
-        Exz_for_plt = np.zeros([n_meshx, n_meshz])
-        Eyz_for_plt = np.zeros([n_meshy, n_meshz])
+        self.H_ = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.E_max = []
+        self.H_max = []
+        self.Exy_for_plt = np.zeros([n_meshx, n_meshy])
+        self.Exz_for_plt = np.zeros([n_meshx, n_meshz])
+        self.Eyz_for_plt = np.zeros([n_meshy, n_meshz])
 
         #flag
         flag_plt = False
@@ -92,16 +126,9 @@ class FDTD:
         v_max = c/n_min
         dt = 1/5.*1/math.sqrt((1/dx)**2+(1/dy)**2+(1/dz)**2)/v_max
 
-        if v_max * dt <= 1/math.sqrt((1/dx)**2+(1/dy)**2+(1/dz)**2):
-            pass
-        else:
-            print("Error: Parametars don't meet the CFL condition.")
-            command = input("Shall we exit? (Y/N) > ")    
-            print(command)
-            if command == ("Y") or command == ("y"):
-                sys.exit()
-            else:
-                pass    
+        if not(v_max * dt <= 1/math.sqrt((1/dx)**2+(1/dy)**2+(1/dz)**2)):
+            raise "Runtime Error: Parametars don't meet the CFL condition."
+
 
     def struct_eh_matrix(self):
         #Structing E&H matrix

@@ -22,19 +22,44 @@ class FDTD:
         #initial condition
         self.t = 0.
 
+        self.set_physical_const()
+        self.set_simulation_param()
+        self.set_mesh_num()
+        self.set_pml()
+
+        self.set_start_idx(1)
+        self.set_end_idx()
+
+        self.make_diff_table(self.n_w, self.n_w2, self.n_L, self.n_H)
+        self.make_eps_table(self.eps_0)
+
+        self.set_differential()
+        self.set_E_H_for_plot()
+        self.set_cfl_condition()
+
+        print("Initializing Done.")
+
+    def run(self):
+        self.struct_eh_matrix()
+        self.struct_yee_grid()
+        self.solve()
+        return
+
+    def set_physical_const(self):
         #const
         self.c = 3.000 * 10**8
         self.eps_0 = 8.854 * 10**(-12)
-        self.mu_0 = 1/(c**2 * eps_0)
+        self.mu_0 = 1/(self.c**2 * self.eps_0)
 
+    def set_simulation_param(self):
         #parameter
         self.n_co = 3.6
         self.n_cl = 3.24
         self.w = 0.3 * 10**(-6)
         self.n_H = 1.2
         self.n_L = 1.
-        self.lambda_0 = 6.0 *10**(-6)
-        self.omega_0 = 2.*math.pi*c/lambda_0
+        self.lambda_0 = 6.0 *10**(-6) # wavelength
+        self.omega_0 = 2.*math.pi*self.c/self.lambda_0
         self.area_x = 30.0 * 10**(-6) # and -50.0 um
         self.area_y = 30.0 * 10**(-6) # and -50.0 um
         self.area_z = 30.0 * 10**(-6) # and 100.0 um
@@ -42,27 +67,20 @@ class FDTD:
         self.m = 0.8
         self.R_0 = 0.01 *10**(-2)
         #eps = eps_0
-        self.mu = mu_0 #Not magnetic body
+        self.mu = self.mu_0 #Not magnetic body
 
-        #mesh & PML
+    def set_mesh_num(self):
+        #mesh
         self.n_meshx = 30
         self.n_meshy = 30
         self.n_meshz = 90
         self.n_w = 5
         self.n_w2= 30
 
-        self.set_pml()
-        self.set_start_idx(1)
-        self.set_end_idx()
-        self.make_diff_table(self.n_w, self.n_w2, self.n_L, self.n_H)
-        self.make_eps_table(self.eps_0)
-        self.set_differential()
-        self.set_E_H_for_plot()
-
     def set_pml(self):
-        self.d_PMLx = self.n_meshx/10.
-        self.d_PMLy = self.n_meshy/10.
-        self.d_PMLz = self.n_meshz/10.
+        self.d_pml_x = self.n_meshx/10.
+        self.d_pml_y = self.n_meshy/10.
+        self.d_pml_z = self.n_meshz/10.
     
     def set_start_idx(self, start):
         #Start & End
@@ -75,11 +93,13 @@ class FDTD:
         self.ye = self.n_meshy - self.ys
         self.ze = self.n_meshz - self.zs
 
-
     def make_diff_table(self, n_w, n_w2, n_L, n_H):
         n_meshx = self.n_meshx
         n_meshy = self.n_meshy
         n_meshz = self.n_meshz
+        n_w2 = self.n_w2
+        n_L = self.n_L
+        n_H = self.n_H
         self.diff_table = np.zeros([n_meshx, n_meshy, n_meshz])
         self.diff_table[0:n_meshx, 0:n_meshy, 0:n_meshz-n_w2] = n_L 
         self.diff_table[0:n_meshx, 0:n_meshy, n_meshz-n_w2:n_meshz] = n_H
@@ -89,7 +109,7 @@ class FDTD:
         n_meshy = self.n_meshy
         n_meshz = self.n_meshz
         self.eps = np.zeros([n_meshx, n_meshy, n_meshz])
-        self.eps[0:n_meshx, 0:n_meshy, 0:n_meshz] = np.power(self.diff_table[0:n_meshx, 0:n_meshy, 0:n_meshz], 2) * eps_0       
+        self.eps[0:n_meshx, 0:n_meshy, 0:n_meshz] = np.power(self.diff_table[0:n_meshx, 0:n_meshy, 0:n_meshz], 2) * self.eps_0       
 
     def set_differential(self):
         n_meshx = self.n_meshx
@@ -98,7 +118,7 @@ class FDTD:
         area_x = self.area_x
         area_y = self.area_y
         area_z = self.area_z
-        #dt = 1.0 * 10**(-18)
+        #dt = 1.0 * 10**(-18) #CFLでdt決めるからここでは不要
         self.dx = 2*area_x/n_meshx
         self.dy = 2*area_y/n_meshy
         self.dz = 2*area_z/n_meshz 
@@ -116,32 +136,37 @@ class FDTD:
         self.Eyz_for_plt = np.zeros([n_meshy, n_meshz])
 
         #flag
-        flag_plt = False
-        flag_start = False
-                   
+        self.flag_plt = False
+        self.flag_start = False
+        
     def set_cfl_condition(self):
         #CFL condition
         #v*dt <= 1./sqrt((1/dx)^2+(1/dy)^2+(1/dz)^2)
-        n_min = min([n_co, n_cl, n_H, n_L])
-        v_max = c/n_min
-        dt = 1/5.*1/math.sqrt((1/dx)**2+(1/dy)**2+(1/dz)**2)/v_max
+        dx = self.dx
+        dy = self.dy
+        dz = self.dz
+        n_min = min([self.n_co, self.n_cl, self.n_H, self.n_L])
+        v_max = self.c/n_min
+        self.dt = 1/5.*1/math.sqrt((1/dx)**2+(1/dy)**2+(1/dz)**2)/v_max
 
-        if not(v_max * dt <= 1/math.sqrt((1/dx)**2+(1/dy)**2+(1/dz)**2)):
+        if not(v_max * self.dt <= 1/math.sqrt((1/dx)**2+(1/dy)**2+(1/dz)**2)):
             raise "Runtime Error: Parametars don't meet the CFL condition."
-
 
     def struct_eh_matrix(self):
         #Structing E&H matrix
-        E_0 = np.zeros([n_meshx, n_meshy, n_meshz])
-        H_0 = np.zeros([n_meshx, n_meshy, n_meshz])
-        print("Initializing Done.")    
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
+        self.E_0 = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.H_0 = np.zeros([n_meshx, n_meshy, n_meshz])
 
     def struct_pml(self):
         #Structing PML
-        sigma_maxx = -(m+1)*math.ln(R_0)/(2*eta_0*eps_0*d_PMLx) # It shoud be modified later.
-        for xi_x in d_PMLx:
-            
-            sigma = (xi_x/d_PMLx)**m * sigma_maxx
+        d_pml_x = self.d_pml_x
+        m = self.m
+        sigma_x_max = -(m+1)*math.ln(self.R_0)/(2*self.eta_0*self.eps_0*d_pml_x) # It shoud be modified later.
+        for xi_x in d_pml_x: # 謎コード。勉強しなおそう
+            sigma = (xi_x/d_pml_x)**m * sigma_x_max
 
         print("Initializing Done.")    
 
@@ -156,50 +181,53 @@ class FDTD:
         t= n*dt
         E_upd = f(E)
         """
-        E_nx = H_0
-        E_ny = H_0
-        E_nz = H_0
-        H_nx = E_0
-        H_ny = E_0
-        H_nz = E_0
-        E_nx1 = np.zeros([n_meshx, n_meshy, n_meshz])
-        E_ny1 = np.zeros([n_meshx, n_meshy, n_meshz])
-        E_nz1 = np.zeros([n_meshx, n_meshy, n_meshz])
-        H_nx1 = np.zeros([n_meshx, n_meshy, n_meshz])
-        H_ny1 = np.zeros([n_meshx, n_meshy, n_meshz])
-        H_nz1 = np.zeros([n_meshx, n_meshy, n_meshz])
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
+        self.E_nx = self.H_0
+        self.E_ny = self.H_0
+        self.E_nz = self.H_0
+        self.H_nx = self.E_0
+        self.H_ny = self.E_0
+        self.H_nz = self.E_0
+        self.E_nx1 = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.E_ny1 = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.E_nz1 = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.H_nx1 = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.H_ny1 = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.H_nz1 = np.zeros([n_meshx, n_meshy, n_meshz])
 
+        #for i in range(20, 30):
+        #    E_nx[i,25,25] = 1
+        #    E_nx[i,24,25] = 1
+        #    H_ny1[i+1,25,25] = 0.5
+        #    H_ny1[i+1,24,25] = 0.5
+        #E_nx[25,25,25] = 1.
 
-#for i in range(20, 30):
-#    E_nx[i,25,25] = 1
-#    E_nx[i,24,25] = 1
-#    H_ny1[i+1,25,25] = 0.5
-#    H_ny1[i+1,24,25] = 0.5
-#E_nx[25,25,25] = 1.
-
-#E_nx[xs:xe, ys:ye, zs:ze] = 1.
-#H_ny[25,25,25]=E_nx[25,25,25] /pow(mu/eps, 1/2.)
-#Gaussian
-#for i in range(1, n_meshx-1): #Calc new E
-#    for j in range(1, n_meshy-1):
-#        for k in range(1, n_meshz-1):  
-#            xc = n_meshx/2
-#            yc = n_meshy/2
-#            zc = n_meshz/2
-#            x = i 
-#            y = j
-#            z = k
-#            r2 = (x - xc)**2 + (y - yc)**2 + (z - zc)**2
-#            w2 = 10.
-#            #E_nx[i, j, k] = math.exp(-r2 / w2)
-#            E_nx[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z - zc)**2) / w2)
-#            E_ny[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z - zc)**2) / w2)
-#            E_nz[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z - zc)**2) / w2)
-#    
+        E_nx[self.xs:self.xe, self.ys:self.ye, self.zs:self.ze] = 1.
+        #H_ny[25,25,25]=E_nx[25,25,25] /pow(mu/eps, 1/2.)
+        #Gaussian
+        for i in range(1, n_meshx-1): #Calc new E
+            for j in range(1, n_meshy-1):
+                for k in range(1, n_meshz-1):  
+                    xc = n_meshx/2
+                    yc = n_meshy/2
+                    zc = n_meshz/2
+                    x = i 
+                    y = j
+                    z = k
+                    r2 = (x - xc)**2 + (y - yc)**2 + (z - zc)**2
+                    w2 = 10.
+                    #E_nx[i, j, k] = math.exp(-r2 / w2)
+                    self.E_nx[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z  zc)**2) / w2)
+                    self.E_y[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z - zc)**2) / w2)
+                    self.E_nz[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z - zc)**2) / w2)
+        #    
 
     def solve(self):
         #Difference method (FDTD)
-        for t in range(1,int(t_max/dt)-1):
+        dt = self.dt
+        for t in range(1,int(self.t_max/dt)-1):
             print("n = "+ str(t))
             print("t = "+ str(round(t*dt*10**15,3)) + " [fs]")
             self.set_forced_occilation(t)

@@ -374,23 +374,14 @@ class FDTD:
         area_z = self.area_z
 
         #Plotting
-    #    for i in range(0, n_meshx-1):
-    #        for j in range(0, n_meshy-1):
-    #            Exy_for_plt[i, j] = math.pow(self.E_nx[i, j, 25]**2. +self.E_ny[i, j, 25]**2. +self.E_nz[i, j, 25]**2. , 1./2.)
         self.Exy_for_plt[0:n_meshx, 0:n_meshy] = np.power( \
                 np.power(self.E_nx[0:n_meshx, 0:n_meshy, int(n_meshz/2.)], 2.) + \
                 np.power(self.E_ny[0:n_meshx, 0:n_meshy, int(n_meshz/2.)], 2.) + \
                 np.power(self.E_nz[0:n_meshx, 0:n_meshy, int(n_meshz/2.)], 2.) , 1./2.) 
-    #    for i in range(0, n_meshx-1):
-    #        for k in range(0, n_meshz-1):
-    #            Exz_for_plt[i, k] = math.pow(self.E_nx[i, 25, k]**2. +self.E_ny[i, 25, k]**2. +self.E_nz[i, 25, k]**2. , 1./2.)
         self.Exz_for_plt[0:n_meshx, 0:n_meshz] = np.power( \
                 np.power(self.E_nx[0:n_meshx, int(n_meshy/2.), 0:n_meshz], 2.) + \
                 np.power(self.E_ny[0:n_meshx, int(n_meshy/2.), 0:n_meshz], 2.) + \
                 np.power(self.E_nz[0:n_meshx, int(n_meshy/2.), 0:n_meshz], 2.) , 1./2.)
-    #    for j in range(0, n_meshy-1):
-    #        for k in range(0, n_meshz-1):
-    #            Eyz_for_plt[j, k] = math.pow(self.E_nx[25, j, k]**2. +E_ny[25, j, k]**2. +E_nz[25, j, k]**2. , 1./2.)
         self.Eyz_for_plt[0:n_meshy, 0:n_meshz] = np.power( \
                 np.power(self.E_nx[int(n_meshx/2.), 0:n_meshy, 0:n_meshz], 2.) + \
                 np.power(self.E_ny[int(n_meshx/2.), 0:n_meshy, 0:n_meshz], 2.) + \
@@ -452,26 +443,6 @@ class FDTD:
         plt.clf()
         self.flag_plt=True
 
-        #Visualization
-        """
-        E_nx_for_plt=[
-        E_nx[0,0,0] E_nx[1,0,0] ... E_nx[i,0,0]
-        E
-        ]
-        """
-        #Ex_for_plt = np.zeros([n_meshx, n_meshy, n_meshz])
-        #for i in range(0, n_meshx-1):
-            #for j in range(0, n_meshy-1):
-                #Ex_for_plt[i, j] = self.E_nx[i, j, 0]
-
-        #x_plt = np.arange(-area_x+dx, area_x-dx, dx)
-        #y_plt = np.arange(-area_y+dx, area_y-dx, dy)
-
-        #X, Y = np.meshgrid(x_plt, y_plt)
-        #plt.use('Agg')
-        #plt.pcolor(X, Y, Ex_for_plt)
-        #plt.colorbar()
-        #plt.show()
 
 def main():
     fdtd = FDTD()

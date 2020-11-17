@@ -204,7 +204,7 @@ class FDTD:
         #    H_ny1[i+1,24,25] = 0.5
         #E_nx[25,25,25] = 1.
 
-        E_nx[self.xs:self.xe, self.ys:self.ye, self.zs:self.ze] = 1.
+        self.E_nx[self.xs:self.xe, self.ys:self.ye, self.zs:self.ze] = 1.
         #H_ny[25,25,25]=E_nx[25,25,25] /pow(mu/eps, 1/2.)
         #Gaussian
         for i in range(1, n_meshx-1): #Calc new E
@@ -216,11 +216,11 @@ class FDTD:
                     x = i 
                     y = j
                     z = k
-                    r2 = (x - xc)**2 + (y - yc)**2 + (z - zc)**2
+                    #r2 = (x - xc)**2 + (y - yc)**2 + (z - zc)**2
                     w2 = 10.
                     #E_nx[i, j, k] = math.exp(-r2 / w2)
-                    self.E_nx[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z  zc)**2) / w2)
-                    self.E_y[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z - zc)**2) / w2)
+                    self.E_nx[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z  - zc)**2) / w2)
+                    self.E_ny[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z - zc)**2) / w2)
                     self.E_nz[i, j, k] = math.exp(-((x - xc)**2 + (y - yc)**2 + (z - zc)**2) / w2)
         #    
 
@@ -233,176 +233,250 @@ class FDTD:
             self.set_forced_occilation(t)
             self.set_bc_mur1(t)
             self.update(t)
-            self.plot_result()
+            self.plot_result(t)
         
     def set_forced_occilation(self, t):
         #Forced Oscillation
     #    for i in range(n_w, n_meshx-1-n_w): #Calc new E
     #          for j in range(n_w, n_meshy-1-n_w):
     #              E_nx[i, j, int(n_meshz/2.)] = math.sin(omega_0*t*dt)
-        E_nx[n_w:xe-n_w, n_w:ye-n_w, int(n_meshz/2.)] = np.sin(omega_0*t*dt)
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
+        xs = self.xs
+        xe = self.xe
+        ys = self.ys
+        ye = self.ye
+        zs = self.zs
+        ze = self.ze
+        dt = self.dt
+        dx = self.dx
+        dy = self.dy
+        dz = self.dz
+        eps = self.eps
+        self.E_nx[self.n_w:xe-self.n_w, self.n_w:ye-self.n_w, int(n_meshz/2.)] = np.sin(self.omega_0*t*dt)
         
-        E_nx1[xs:xe, ys:ye, zs:ze] = E_nx[xs:xe, ys:ye, zs:ze] \
-                + dt / (eps[xs:xe, ys:ye, zs:ze]*dy) * (H_nz[xs:xe, ys:ye, zs:ze] - H_nz[xs:xe, ys-1:ye-1, zs:ze]) \
-                - dt / (eps[xs:xe, ys:ye, zs:ze]*dz) * (H_ny[xs:xe, ys:ye, zs:ze] - H_ny[xs:xe, ys:ye, zs-1:ze-1]) 
+        self.E_nx1[xs:xe, ys:ye, zs:ze] = self.E_nx[xs:xe, ys:ye, zs:ze] \
+                + dt / (eps[xs:xe, ys:ye, zs:ze]*dy) * (self.H_nz[xs:xe, ys:ye, zs:ze] - self.H_nz[xs:xe, ys-1:ye-1, zs:ze]) \
+                - dt / (eps[xs:xe, ys:ye, zs:ze]*dz) * (self.H_ny[xs:xe, ys:ye, zs:ze] - self.H_ny[xs:xe, ys:ye, zs-1:ze-1]) 
                 
-        E_ny1[xs:xe, ys:ye, zs:ze] = E_ny[xs:xe, ys:ye, zs:ze] \
-                + dt / (eps[xs:xe, ys:ye, zs:ze]*dz) * (H_nx[xs:xe, ys:ye, zs:ze] - H_nx[xs:xe, ys:ye, zs-1:ze-1]) \
-                - dt / (eps[xs:xe, ys:ye, zs:ze]*dx) * (H_nz[xs:xe, ys:ye, zs:ze] - H_nz[xs-1:xe-1, ys:ye, zs:ze]) 
+        self.E_ny1[xs:xe, ys:ye, zs:ze] = self.E_ny[xs:xe, ys:ye, zs:ze] \
+                + dt / (eps[xs:xe, ys:ye, zs:ze]*dz) * (self.H_nx[xs:xe, ys:ye, zs:ze] - self.H_nx[xs:xe, ys:ye, zs-1:ze-1]) \
+                - dt / (eps[xs:xe, ys:ye, zs:ze]*dx) * (self.H_nz[xs:xe, ys:ye, zs:ze] - self.H_nz[xs-1:xe-1, ys:ye, zs:ze]) 
                 
-        E_nz1[xs:xe, ys:ye, zs:ze] = E_nz[xs:xe, ys:ye, zs:ze] \
-                + dt / (eps[xs:xe, ys:ye, zs:ze]*dx) * (H_ny[xs:xe, ys:ye, zs:ze] - H_ny[xs-1:xe-1, ys:ye, zs:ze]) \
-                - dt / (eps[xs:xe, ys:ye, zs:ze]*dy) * (H_nx[xs:xe, ys:ye, zs:ze] - H_nx[xs:xe, ys-1:ye-1, zs:ze])       
+        self.E_nz1[xs:xe, ys:ye, zs:ze] = self.E_nz[xs:xe, ys:ye, zs:ze] \
+                + dt / (eps[xs:xe, ys:ye, zs:ze]*dx) * (self.H_ny[xs:xe, ys:ye, zs:ze] - self.H_ny[xs-1:xe-1, ys:ye, zs:ze]) \
+                - dt / (eps[xs:xe, ys:ye, zs:ze]*dy) * (self.H_nx[xs:xe, ys:ye, zs:ze] - self.H_nx[xs:xe, ys-1:ye-1, zs:ze])       
     
     def set_bc_mur1(self, t):
         #Boundary Condition (Mur 1) for E-field
-        E_nx1[0, ys:ye, zs:ze] = E_nx[1, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(E_nx1[1, ys:ye, zs:ze] - E_nx[0, ys:ye, zs:ze])
-        E_ny1[0, ys:ye, zs:ze] = E_ny[1, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(E_ny1[1, ys:ye, zs:ze] - E_ny[0, ys:ye, zs:ze])
-        E_nz1[0, ys:ye, zs:ze] = E_nz[1, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(E_nz1[1, ys:ye, zs:ze] - E_nz[0, ys:ye, zs:ze])
-        E_nx1[n_meshx-1, ys:ye, zs:ze] = E_nx[n_meshx-2, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(E_nx1[n_meshx-2, ys:ye, zs:ze] - E_nx[n_meshx-1, ys:ye, zs:ze])
-        E_ny1[n_meshx-1, ys:ye, zs:ze] = E_ny[n_meshx-2, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(E_ny1[n_meshx-2, ys:ye, zs:ze] - E_ny[n_meshx-1, ys:ye, zs:ze])
-        E_nz1[n_meshx-1, ys:ye, zs:ze] = E_nz[n_meshx-2, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(E_nz1[n_meshx-2, ys:ye, zs:ze] - E_nz[n_meshx-1, ys:ye, zs:ze])
-        
-        E_nx1[xs:xe, 0, zs:ze] = E_nx[xs:xe, 1, zs:ze] +(c*dt-dy)/(c*dt+dy)*(E_nx1[xs:xe, 1, zs:ze] - E_nx[0, ys:ye, zs:ze])
-        E_ny1[xs:xe, 0, zs:ze] = E_ny[xs:xe, 1, zs:ze] +(c*dt-dy)/(c*dt+dy)*(E_ny1[xs:xe, 1, zs:ze] - E_ny[0, ys:ye, zs:ze])
-        E_nz1[xs:xe, 0, zs:ze] = E_nz[xs:xe, 1, zs:ze] +(c*dt-dy)/(c*dt+dy)*(E_nz1[xs:xe, 1, zs:ze] - E_nz[0, ys:ye, zs:ze])
-        E_nx1[xs:xe, n_meshy-1, zs:ze] = E_nx[xs:xe, n_meshy-2, zs:ze] +(c*dt-dy)/(c*dt+dy)*(E_nx1[xs:xe, n_meshy-2, zs:ze] - E_nx[n_meshy-1, ys:ye, zs:ze])
-        E_ny1[xs:xe, n_meshy-1, zs:ze] = E_ny[xs:xe, n_meshy-2, zs:ze] +(c*dt-dy)/(c*dt+dy)*(E_ny1[xs:xe, n_meshy-2, zs:ze] - E_ny[n_meshy-1, ys:ye, zs:ze])
-        E_nz1[xs:xe, n_meshy-1, zs:ze] = E_nz[xs:xe, n_meshy-2, zs:ze] +(c*dt-dy)/(c*dt+dy)*(E_nz1[xs:xe, n_meshy-2, zs:ze] - E_nz[n_meshy-1, ys:ye, zs:ze])
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
+        xs = self.xs
+        xe = self.xe
+        ys = self.ys
+        ye = self.ye
+        zs = self.zs
+        ze = self.ze
+        c = self.c
+        dt = self.dt
+        dx = self.dx
+        dy = self.dy
+        dz = self.dz        
 
-        E_nx1[xs:xe, ys:ye, 0] = E_nx[xs:xe, ys:ye, 1] +(c*dt-dz)/(c*dt+dz)*(E_nx1[xs:xe, ys:ye, 1] - E_nx[xs:xe, ys:ye, 0])
-        E_ny1[xs:xe, ys:ye, 0] = E_ny[xs:xe, ys:ye, 1] +(c*dt-dz)/(c*dt+dz)*(E_ny1[xs:xe, ys:ye, 1] - E_ny[xs:xe, ys:ye, 0])
-        E_nz1[xs:xe, ys:ye, 0] = E_nz[xs:xe, ys:ye, 1] +(c*dt-dz)/(c*dt+dz)*(E_nz1[xs:xe, ys:ye, 1] - E_nz[xs:xe, ys:ye, 0])
-        E_nx1[xs:xe, ys:ye, n_meshz-1] = E_nx[xs:xe, ys:ye, n_meshz-2] +(c*dt-dz)/(c*dt+dz)*(E_nx1[xs:xe, ys:ye, n_meshz-2] - E_nx[xs:xe, ys:ye, n_meshy-1])
-        E_ny1[xs:xe, ys:ye, n_meshz-1] = E_ny[xs:xe, ys:ye, n_meshz-2] +(c*dt-dz)/(c*dt+dz)*(E_ny1[xs:xe, ys:ye, n_meshz-2] - E_ny[xs:xe, ys:ye, n_meshy-1])
-        E_nz1[xs:xe, ys:ye, n_meshz-1] = E_nz[xs:xe, ys:ye, n_meshz-2] +(c*dt-dz)/(c*dt+dz)*(E_nz1[xs:xe, ys:ye, n_meshz-2] - E_nz[xs:xe, ys:ye, n_meshy-1])
+        self.E_nx1[0, ys:ye, zs:ze] = self.E_nx[1, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(self.E_nx1[1, ys:ye, zs:ze] - self.E_nx[0, ys:ye, zs:ze])
+        self.E_ny1[0, ys:ye, zs:ze] = self.E_ny[1, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(self.E_ny1[1, ys:ye, zs:ze] - self.E_ny[0, ys:ye, zs:ze])
+        self.E_nz1[0, ys:ye, zs:ze] = self.E_nz[1, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(self.E_nz1[1, ys:ye, zs:ze] - self.E_nz[0, ys:ye, zs:ze])
+        self.E_nx1[n_meshx-1, ys:ye, zs:ze] = self.E_nx[n_meshx-2, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(self.E_nx1[n_meshx-2, ys:ye, zs:ze] - self.E_nx[n_meshx-1, ys:ye, zs:ze])
+        self.E_ny1[n_meshx-1, ys:ye, zs:ze] = self.E_ny[n_meshx-2, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(self.E_ny1[n_meshx-2, ys:ye, zs:ze] - self.E_ny[n_meshx-1, ys:ye, zs:ze])
+        self.E_nz1[n_meshx-1, ys:ye, zs:ze] = self.E_nz[n_meshx-2, ys:ye, zs:ze] +(c*dt-dx)/(c*dt+dx)*(self.E_nz1[n_meshx-2, ys:ye, zs:ze] - self.E_nz[n_meshx-1, ys:ye, zs:ze])
+        
+        self.E_nx1[xs:xe, 0, zs:ze] = self.E_nx[xs:xe, 1, zs:ze] +(c*dt-dy)/(c*dt+dy)*(self.E_nx1[xs:xe, 1, zs:ze] - self.E_nx[0, ys:ye, zs:ze])
+        self.E_ny1[xs:xe, 0, zs:ze] = self.E_ny[xs:xe, 1, zs:ze] +(c*dt-dy)/(c*dt+dy)*(self.E_ny1[xs:xe, 1, zs:ze] - self.E_ny[0, ys:ye, zs:ze])
+        self.E_nz1[xs:xe, 0, zs:ze] = self.E_nz[xs:xe, 1, zs:ze] +(c*dt-dy)/(c*dt+dy)*(self.E_nz1[xs:xe, 1, zs:ze] - self.E_nz[0, ys:ye, zs:ze])
+        self.E_nx1[xs:xe, n_meshy-1, zs:ze] = self.E_nx[xs:xe, n_meshy-2, zs:ze] +(c*dt-dy)/(c*dt+dy)*(self.E_nx1[xs:xe, n_meshy-2, zs:ze] - self.E_nx[n_meshy-1, ys:ye, zs:ze])
+        self.E_ny1[xs:xe, n_meshy-1, zs:ze] = self.E_ny[xs:xe, n_meshy-2, zs:ze] +(c*dt-dy)/(c*dt+dy)*(self.E_ny1[xs:xe, n_meshy-2, zs:ze] - self.E_ny[n_meshy-1, ys:ye, zs:ze])
+        self.E_nz1[xs:xe, n_meshy-1, zs:ze] = self.E_nz[xs:xe, n_meshy-2, zs:ze] +(c*dt-dy)/(c*dt+dy)*(self.E_nz1[xs:xe, n_meshy-2, zs:ze] - self.E_nz[n_meshy-1, ys:ye, zs:ze])
+
+        self.E_nx1[xs:xe, ys:ye, 0] = self.E_nx[xs:xe, ys:ye, 1] +(c*dt-dz)/(c*dt+dz)*(self.E_nx1[xs:xe, ys:ye, 1] - self.E_nx[xs:xe, ys:ye, 0])
+        self.E_ny1[xs:xe, ys:ye, 0] = self.E_ny[xs:xe, ys:ye, 1] +(c*dt-dz)/(c*dt+dz)*(self.E_ny1[xs:xe, ys:ye, 1] - self.E_ny[xs:xe, ys:ye, 0])
+        self.E_nz1[xs:xe, ys:ye, 0] = self.E_nz[xs:xe, ys:ye, 1] +(c*dt-dz)/(c*dt+dz)*(self.E_nz1[xs:xe, ys:ye, 1] - self.E_nz[xs:xe, ys:ye, 0])
+        self.E_nx1[xs:xe, ys:ye, n_meshz-1] = self.E_nx[xs:xe, ys:ye, n_meshz-2] +(c*dt-dz)/(c*dt+dz)*(self.E_nx1[xs:xe, ys:ye, n_meshz-2] - self.E_nx[xs:xe, ys:ye, n_meshy-1])
+        self.E_ny1[xs:xe, ys:ye, n_meshz-1] = self.E_ny[xs:xe, ys:ye, n_meshz-2] +(c*dt-dz)/(c*dt+dz)*(self.E_ny1[xs:xe, ys:ye, n_meshz-2] - self.E_ny[xs:xe, ys:ye, n_meshy-1])
+        self.E_nz1[xs:xe, ys:ye, n_meshz-1] = self.E_nz[xs:xe, ys:ye, n_meshz-2] +(c*dt-dz)/(c*dt+dz)*(self.E_nz1[xs:xe, ys:ye, n_meshz-2] - self.E_nz[xs:xe, ys:ye, n_meshy-1])
     
     def update(self, t):
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
+        xs = self.xs
+        xe = self.xe
+        ys = self.ys
+        ye = self.ye
+        zs = self.zs
+        ze = self.ze
+        dt = self.dt
+
         ### update E
-        E_nx = E_nx1
-        E_ny = E_ny1
-        E_nz = E_nz1
-                
-        H_nx1[xs:xe, ys:ye, zs:ze] = H_nx[xs:xe, ys:ye, zs:ze] \
-                + dt / (mu*dz) * (E_ny[xs:xe, ys:ye, zs+1:ze+1] - E_ny[xs:xe, ys:ye, zs:ze]) \
-                - dt / (mu*dy) * (E_nz[xs:xe, ys+1:ye+1, zs:ze] - E_nz[xs:xe, ys:ye, zs:ze]) 
-                
-        H_ny1[xs:xe, ys:ye, zs:ze] = H_ny[xs:xe, ys:ye, zs:ze] \
-                + dt / (mu*dx) * (E_nz[xs+1:xe+1, ys:ye, zs:ze] - E_nz[xs:xe, ys:ye, zs:ze]) \
-                - dt / (mu*dz) * (E_nx[xs:xe, ys:ye, zs+1:ze+1] - E_nx[xs:xe, ys:ye, zs:ze]) 
-                
-        H_nz1[xs:xe, ys:ye, zs:ze] = H_nz[xs:xe, ys:ye, zs:ze] \
-                + dt / (mu*dy) * (E_nx[xs:xe, ys+1:ye+1, zs:ze] - E_nx[xs:xe, ys:ye, zs:ze]) \
-                - dt / (mu*dx) * (E_ny[xs+1:xe+1, ys:ye, zs:ze] - E_ny[xs:xe, ys:ye, zs:ze]) 
-                
+        self.E_nx = self.E_nx1
+        self.E_ny = self.E_ny1
+        self.E_nz = self.E_nz1
+        
+        self.calc_maxwell_equation()
+
         #Update
-        H_nx = H_nx1
-        H_ny = H_ny1
-        H_nz = H_nz1
+        self.H_nx = self.H_nx1
+        self.H_ny = self.H_ny1
+        self.H_nz = self.H_nz1
+        
+    def calc_maxwell_equation(self):
+        xs = self.xs
+        xe = self.xe
+        ys = self.ys
+        ye = self.ye
+        zs = self.zs
+        ze = self.ze
+        dt = self.dt
+        dx = self.dx
+        dy = self.dy
+        dz = self.dz        
+        mu = self.mu
+
+        self.H_nx1[xs:xe, ys:ye, zs:ze] = self.H_nx[xs:xe, ys:ye, zs:ze] \
+                + dt / (mu*dz) * (self.E_ny[xs:xe, ys:ye, zs+1:ze+1] - self.E_ny[xs:xe, ys:ye, zs:ze]) \
+                - dt / (mu*dy) * (self.E_nz[xs:xe, ys+1:ye+1, zs:ze] - self.E_nz[xs:xe, ys:ye, zs:ze]) 
+                
+        self.H_ny1[xs:xe, ys:ye, zs:ze] = self.H_ny[xs:xe, ys:ye, zs:ze] \
+                + dt / (mu*dx) * (self.E_nz[xs+1:xe+1, ys:ye, zs:ze] - self.E_nz[xs:xe, ys:ye, zs:ze]) \
+                - dt / (mu*dz) * (self.E_nx[xs:xe, ys:ye, zs+1:ze+1] - self.E_nx[xs:xe, ys:ye, zs:ze]) 
+                
+        self.H_nz1[xs:xe, ys:ye, zs:ze] = self.H_nz[xs:xe, ys:ye, zs:ze] \
+                + dt / (mu*dy) * (self.E_nx[xs:xe, ys+1:ye+1, zs:ze] - self.E_nx[xs:xe, ys:ye, zs:ze]) \
+                - dt / (mu*dx) * (self.E_ny[xs+1:xe+1, ys:ye, zs:ze] - self.E_ny[xs:xe, ys:ye, zs:ze]) 
+
+    def plot_result(self, t):
+        n_meshx = self.n_meshx
+        n_meshy = self.n_meshy
+        n_meshz = self.n_meshz
+        xs = self.xs
+        xe = self.xe
+        ys = self.ys
+        ye = self.ye
+        zs = self.zs
+        ze = self.ze
+        dt = self.dt
+        dx = self.dx
+        dy = self.dy
+        dz = self.dz     
+        area_x = self.area_x
+        area_y = self.area_y
+        area_z = self.area_z
+
         #Plotting
     #    for i in range(0, n_meshx-1):
     #        for j in range(0, n_meshy-1):
-    #            Exy_for_plt[i, j] = math.pow(E_nx[i, j, 25]**2. +E_ny[i, j, 25]**2. +E_nz[i, j, 25]**2. , 1./2.)
-        Exy_for_plt[0:n_meshx, 0:n_meshy] = np.power( \
-                np.power(E_nx[0:n_meshx, 0:n_meshy, int(n_meshz/2.)], 2.) + \
-                np.power(E_ny[0:n_meshx, 0:n_meshy, int(n_meshz/2.)], 2.) + \
-                np.power(E_nz[0:n_meshx, 0:n_meshy, int(n_meshz/2.)], 2.) , 1./2.) 
+    #            Exy_for_plt[i, j] = math.pow(self.E_nx[i, j, 25]**2. +self.E_ny[i, j, 25]**2. +self.E_nz[i, j, 25]**2. , 1./2.)
+        self.Exy_for_plt[0:n_meshx, 0:n_meshy] = np.power( \
+                np.power(self.E_nx[0:n_meshx, 0:n_meshy, int(n_meshz/2.)], 2.) + \
+                np.power(self.E_ny[0:n_meshx, 0:n_meshy, int(n_meshz/2.)], 2.) + \
+                np.power(self.E_nz[0:n_meshx, 0:n_meshy, int(n_meshz/2.)], 2.) , 1./2.) 
     #    for i in range(0, n_meshx-1):
     #        for k in range(0, n_meshz-1):
-    #            Exz_for_plt[i, k] = math.pow(E_nx[i, 25, k]**2. +E_ny[i, 25, k]**2. +E_nz[i, 25, k]**2. , 1./2.)
-        Exz_for_plt[0:n_meshx, 0:n_meshz] = np.power( \
-                np.power(E_nx[0:n_meshx, int(n_meshy/2.), 0:n_meshz], 2.) + \
-                np.power(E_ny[0:n_meshx, int(n_meshy/2.), 0:n_meshz], 2.) + \
-                np.power(E_nz[0:n_meshx, int(n_meshy/2.), 0:n_meshz], 2.) , 1./2.)
+    #            Exz_for_plt[i, k] = math.pow(self.E_nx[i, 25, k]**2. +self.E_ny[i, 25, k]**2. +self.E_nz[i, 25, k]**2. , 1./2.)
+        self.Exz_for_plt[0:n_meshx, 0:n_meshz] = np.power( \
+                np.power(self.E_nx[0:n_meshx, int(n_meshy/2.), 0:n_meshz], 2.) + \
+                np.power(self.E_ny[0:n_meshx, int(n_meshy/2.), 0:n_meshz], 2.) + \
+                np.power(self.E_nz[0:n_meshx, int(n_meshy/2.), 0:n_meshz], 2.) , 1./2.)
     #    for j in range(0, n_meshy-1):
     #        for k in range(0, n_meshz-1):
-    #            Eyz_for_plt[j, k] = math.pow(E_nx[25, j, k]**2. +E_ny[25, j, k]**2. +E_nz[25, j, k]**2. , 1./2.)
-        Eyz_for_plt[0:n_meshy, 0:n_meshz] = np.power( \
-                np.power(E_nx[int(n_meshx/2.), 0:n_meshy, 0:n_meshz], 2.) + \
-                np.power(E_ny[int(n_meshx/2.), 0:n_meshy, 0:n_meshz], 2.) + \
-                np.power(E_nz[int(n_meshx/2.), 0:n_meshy, 0:n_meshz], 2.) , 1./2.)   
-        E_max.append([t*dt*10**15, max(Exy_for_plt.max(), Exz_for_plt.max(), Eyz_for_plt.max())]) 
-        H_[xs:xe, ys:ye, zs:ze] = np.power( np.power(H_nx[xs:xe, ys:ye, zs:ze], 2.) + \
-                                            np.power(H_ny[xs:xe, ys:ye, zs:ze], 2.) + \
-                                                np.power(H_nz[xs:xe, ys:ye, zs:ze], 2.), 1./2.)  
+    #            Eyz_for_plt[j, k] = math.pow(self.E_nx[25, j, k]**2. +E_ny[25, j, k]**2. +E_nz[25, j, k]**2. , 1./2.)
+        self.Eyz_for_plt[0:n_meshy, 0:n_meshz] = np.power( \
+                np.power(self.E_nx[int(n_meshx/2.), 0:n_meshy, 0:n_meshz], 2.) + \
+                np.power(self.E_ny[int(n_meshx/2.), 0:n_meshy, 0:n_meshz], 2.) + \
+                np.power(self.E_nz[int(n_meshx/2.), 0:n_meshy, 0:n_meshz], 2.) , 1./2.)   
+        self.E_max.append([t*dt*10**15, max(self.Exy_for_plt.max(), self.Exz_for_plt.max(), self.Eyz_for_plt.max())]) 
+        self.H_[xs:xe, ys:ye, zs:ze] = np.power( np.power(self.H_nx[xs:xe, ys:ye, zs:ze], 2.) + \
+                                            np.power(self.H_ny[xs:xe, ys:ye, zs:ze], 2.) + \
+                                                np.power(self.H_nz[xs:xe, ys:ye, zs:ze], 2.), 1./2.)  
 
-        H_max.append([t*dt*10**15, np.max(H_)*1000]) 
-        print("Emax = "+str(Exy_for_plt.max()))
-        
-    def plot_result(self):
+        self.H_max.append([t*dt*10**15, np.max(self.H_)*1000]) 
+        print("Emax = "+str(self.Exy_for_plt.max()))
         #Plotting
         x_plt = np.arange(-(area_x)*10**6, area_x*10**6, dx*10**6)
         y_plt = np.arange(-(area_y)*10**6, area_y*10**6, dy*10**6)
         z_plt = np.arange(-(area_z)*10**6, area_z*10**6, dz*10**6)
-        E_max_plt = np.array(E_max)
-        H_max_plt = np.array(H_max)
+        self.E_max_plt = np.array(self.E_max)
+        self.H_max_plt = np.array(self.H_max)
         
         Y1, X1 = np.meshgrid(y_plt, x_plt)
         Z, X2 = np.meshgrid(z_plt, x_plt)
         Z, Y = np.meshgrid(z_plt, y_plt)
         
-        if flag_plt == False:
+        if self.flag_plt == False:
             plt.figure(figsize =(12, 10))
         
         plt.subplot(2,2,1)
-        plt.pcolor(X1, Y1, Exy_for_plt)
+        plt.pcolor(X1, Y1, self.Exy_for_plt)
         plt.title('|E (X-Y plane)|')
         plt.xlabel("y [um]")
         plt.ylabel("x [um]")
         plt.colorbar()
         
         plt.subplot(2,2,2)
-        plt.pcolor(X2, Z, Exz_for_plt)
+        plt.pcolor(X2, Z, self.Exz_for_plt)
         plt.title('|E (X-Z plane)|')
         plt.xlabel("x [um]")
         plt.ylabel("z [um]")
         plt.colorbar()
         
         plt.subplot(2,2,3)
-        plt.pcolor(Y, Z, Eyz_for_plt)
+        plt.pcolor(Y, Z, self.Eyz_for_plt)
         plt.title('|E (Y-Z plane)|')
         plt.xlabel("y [um]")
         plt.ylabel("z [um]")
         plt.colorbar()
         
         plt.subplot(2,2,4)
-        plt.plot(E_max_plt[:, 0], E_max_plt[:, 1])
-        plt.plot(E_max_plt[:, 0], H_max_plt[:, 1])
+        plt.plot(self.E_max_plt[:, 0], self.E_max_plt[:, 1])
+        plt.plot(self.E_max_plt[:, 0], self.H_max_plt[:, 1])
         plt.title('Emax (t)')
         plt.xlabel("t [fs]")
         plt.ylabel("E [V/m]")
         
-        if flag_start == False:
+        if self.flag_start == False:
             command = input("Press Enter, then start.")
-            flag_start = True
+            self.flag_start = True
             
         plt.pause(0.001)
         plt.clf()
-        flag_plt=True
+        self.flag_plt=True
 
+        #Visualization
+        """
+        E_nx_for_plt=[
+        E_nx[0,0,0] E_nx[1,0,0] ... E_nx[i,0,0]
+        E
+        ]
+        """
+        #Ex_for_plt = np.zeros([n_meshx, n_meshy, n_meshz])
+        #for i in range(0, n_meshx-1):
+            #for j in range(0, n_meshy-1):
+                #Ex_for_plt[i, j] = self.E_nx[i, j, 0]
+
+        #x_plt = np.arange(-area_x+dx, area_x-dx, dx)
+        #y_plt = np.arange(-area_y+dx, area_y-dx, dy)
+
+        #X, Y = np.meshgrid(x_plt, y_plt)
+        #plt.use('Agg')
+        #plt.pcolor(X, Y, Ex_for_plt)
+        #plt.colorbar()
+        #plt.show()
 
 def main():
+    fdtd = FDTD()
+    fdtd.run()
 
-    #Visualization
-    """
-    E_nx_for_plt=[
-    E_nx[0,0,0] E_nx[1,0,0] ... E_nx[i,0,0]
-    E
-    ]
-    """
-    Ex_for_plt = np.zeros([n_meshx, n_meshy, n_meshz])
-    for i in range(0, n_meshx-1):
-        for j in range(0, n_meshy-1):
-            Ex_for_plt[i, j] = E_nx[i, j, 0]
-
-    x_plt = np.arange(-area_x+dx, area_x-dx, dx)
-    y_plt = np.arange(-area_y+dx, area_y-dx, dy)
-
-    X, Y = np.meshgrid(x_plt, y_plt)
-    plt.use('Agg')
-    plt.pcolor(X, Y, Ex_for_plt)
-    plt.colorbar()
-    plt.show()
 
 if __name__ == "__main__":
     main()

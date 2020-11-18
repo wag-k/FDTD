@@ -17,6 +17,9 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
+#### original module ####
+import file_selecter as fs
+
 class FDTD:
     def __init__(self):
         #initial condition
@@ -25,7 +28,7 @@ class FDTD:
         self.set_physical_const()
         self.set_simulation_param()
         self.set_mesh_num()
-        self.set_pml()
+        #self.set_pml()
 
         self.set_start_idx(1)
         self.set_end_idx()
@@ -49,7 +52,7 @@ class FDTD:
         #const
         self.c = 3.000 * 10**8
         self.eps_0 = 8.854 * 10**(-12)
-        self.mu_0 = 1/(self.c**2 * self.eps_0)
+        self.mu_0 = 1/(self.c**2 * self.eps_0) # VacuumPermeability
 
     def set_simulation_param(self):
         #parameter
@@ -66,7 +69,6 @@ class FDTD:
         self.t_max = 1.0 * 10**(-9)
         self.m = 0.8
         self.R_0 = 0.01 *10**(-2)
-        #eps = eps_0
         self.mu = self.mu_0 #Not magnetic body
 
     def set_mesh_num(self):

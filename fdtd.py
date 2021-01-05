@@ -33,7 +33,7 @@ class FDTD:
         self.set_start_idx(1)
         self.set_end_idx()
 
-        self.make_diff_table(self.n_w, self.n_w2, self.n_L, self.n_H)
+        self.make_refraction_table(self.n_w, self.n_w2, self.refraction_min, self.refraction_max)
         self.make_eps_table(self.eps_0)
 
         self.set_differential()
@@ -56,11 +56,11 @@ class FDTD:
 
     def set_simulation_param(self):
         #parameter
-        self.n_co = 3.6
-        self.n_cl = 3.24
+        self.refraction_co = 3.6
+        self.refraction_cl = 3.24
         self.w = 0.3 * 10**(-6)
-        self.n_H = 1.2
-        self.n_L = 1.
+        self.refraction_max = 1.2
+        self.refraction_min = 1.
         self.lambda_0 = 6.0 *10**(-6) # wavelength
         self.omega_0 = 2.*math.pi*self.c/self.lambda_0
         self.area_x = 30.0 * 10**(-6) # and -50.0 um
@@ -95,23 +95,25 @@ class FDTD:
         self.ye = self.n_meshy - self.ys
         self.ze = self.n_meshz - self.zs
 
-    def make_diff_table(self, n_w, n_w2, n_L, n_H):
+
+
+    def make_refraction_table(self, n_w, n_w2, refraction_min, refraction_max):
         n_meshx = self.n_meshx
         n_meshy = self.n_meshy
         n_meshz = self.n_meshz
         n_w2 = self.n_w2
-        n_L = self.n_L
-        n_H = self.n_H
-        self.diff_table = np.zeros([n_meshx, n_meshy, n_meshz])
-        self.diff_table[0:n_meshx, 0:n_meshy, 0:n_meshz-n_w2] = n_L 
-        self.diff_table[0:n_meshx, 0:n_meshy, n_meshz-n_w2:n_meshz] = n_H
+        refraction_min = self.refraction_min
+        refraction_max = self.refraction_max
+        self.refraction_table = np.zeros([n_meshx, n_meshy, n_meshz])
+        self.refraction_table[0:n_meshx, 0:n_meshy, 0:n_meshz-n_w2] = refraction_min 
+        self.refraction_table[0:n_meshx, 0:n_meshy, n_meshz-n_w2:n_meshz] = refraction_max
 
     def make_eps_table(self, eps_0):
         n_meshx = self.n_meshx
         n_meshy = self.n_meshy
         n_meshz = self.n_meshz
         self.eps = np.zeros([n_meshx, n_meshy, n_meshz])
-        self.eps[0:n_meshx, 0:n_meshy, 0:n_meshz] = np.power(self.diff_table[0:n_meshx, 0:n_meshy, 0:n_meshz], 2) * self.eps_0       
+        self.eps[0:n_meshx, 0:n_meshy, 0:n_meshz] = np.power(self.refraction_table[0:n_meshx, 0:n_meshy, 0:n_meshz], 2) * self.eps_0       
 
     def set_differential(self):
         n_meshx = self.n_meshx
@@ -147,7 +149,7 @@ class FDTD:
         dx = self.dx
         dy = self.dy
         dz = self.dz
-        n_min = min([self.n_co, self.n_cl, self.n_H, self.n_L])
+        n_min = min([self.refraction_co, self.refraction_cl, self.refraction_max, self.refraction_min])
         v_max = self.c/n_min
         self.dt = 1/5.*1/math.sqrt((1/dx)**2+(1/dy)**2+(1/dz)**2)/v_max
 

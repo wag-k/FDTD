@@ -35,7 +35,7 @@ class FDTD:
         self.set_end_idx()
 
         self.refraction_idx = refidx.RefractionIdx(self)
-        self.refraction_idx.set_refraction_from_img("./image/test_pat.tif")
+        self.refraction_idx.set_refraction_from_img("./image/test_pat.tif", self.refraction_min, self.refraction_max)
         self.make_refraction_table(self.n_w, self.n_w2, self.refraction_min, self.refraction_max)
         self.make_eps_table(self.eps_0)
 

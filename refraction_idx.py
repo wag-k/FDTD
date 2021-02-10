@@ -12,22 +12,23 @@ import numpy as np
 import fdtd
 
 class RefractionIdx:
-    def __init__(self, fdtd_):
-        self.fdtd = fdtd_
 
-    def set_refraction_from_img(self, fpath):
+    def __init__(self):
+        pass
+
+    def set_refraction_from_img(self, fpath:str, refraction_min:float, refration_max:float):
         img = cv2.imread(fpath, cv2.IMREAD_GRAYSCALE)
-        self.table = self.create_refraction_with_gradation(img, self.fdtd)
+        self.table = self.create_refraction_with_gradation(img, refraction_min, refration_max)
 
     def create_refraction_table(self, num_mesh_x: int, num_mesh_y: int, num_mesh_z: int) -> np.ndarray:
         table = np.zeros([num_mesh_x, num_mesh_y, num_mesh_z])
         return table 
 
-    def create_refraction_with_gradation(self, img: np.ndarray, fdtd_: fdtd) -> None:
+    def create_refraction_with_gradation(self, img: np.ndarray, refraction_min:float, refraction_max:float) -> None:
         self.set_mesh_num_from_img(img)
         table = self.create_refraction_table(self.num_mesh_x, self.num_mesh_y, self.num_mesh_z)
         for cnt_line, line_img in enumerate(img):
-            cross_section = line_img/255*(self.fdtd.refraction_max - self.fdtd.refraction_min) + self.fdtd.refraction_min
+            cross_section = line_img/255*(refraction_max - refraction_min) + refraction_min
             table[:, :, cnt_line] = cross_section
         return table
 
@@ -38,9 +39,8 @@ class RefractionIdx:
         self.num_mesh_z = img.shape[0]
 
 def main():
-    fdtd_ = fdtd.FDTD()
-    loader = RefractionIdx(fdtd_)
-    loader.set_refraction_from_img("./image/test_pat.tif")
+    loader = RefractionIdx()
+    loader.set_refraction_from_img("./image/test_pat.tif", 1., 1.2)
     print(loader.table.shape)
     #print(loader.table)
 

@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Aug  1 16:39:40 2017
-
-@author: Owner
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Sun May  7 20:08:42 2017
 
 @author: Owner

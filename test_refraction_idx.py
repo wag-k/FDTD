@@ -22,6 +22,9 @@ class TestRefractionIdx(unittest.TestCase):
         self.assertEqual(expected_y, actual_y)
         self.assertEqual(expected_z, actual_z)
         
+    def test_set_refraction_from_img(self):
+        ref_idx = RefractionIdx()
+        ref_idx.set_refraction_from_img()
 
 if __name__ == "__main__":
     unittest.main()

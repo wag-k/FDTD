@@ -21,7 +21,6 @@ class FDTD:
 
         self.set_physical_const()
         self.set_simulation_param()
-        #self.set_mesh_num()
         #self.set_pml()
 
         self.refraction_idx = refidx.RefractionIdx()
@@ -30,7 +29,6 @@ class FDTD:
         self.set_start_idx(1)
         self.set_end_idx()
 
-        # self.make_refraction_table(self.n_w, self.n_w2, self.refraction_min, self.refraction_max)
         self.make_eps_table(self.eps_0)
 
         self.set_differential()
@@ -40,18 +38,26 @@ class FDTD:
         print("Initializing Done.")
 
     def run(self):
+        """
+        FDTD法により電磁界解析を行います
+        """
         self.struct_eh_matrix()
         self.struct_yee_grid()
         self.solve()
         return
 
     def set_physical_const(self):
-        #const
+        """
+        物理定数を定めます。
+        """
         self.c = 3.000 * 10**8
         self.eps_0 = 8.854 * 10**(-12)
         self.mu_0 = 1/(self.c**2 * self.eps_0) # VacuumPermeability
 
     def set_simulation_param(self):
+        """
+        シミュレーションに必要なパラメータ設定を行います
+        """
         #parameter
         self.refraction_co = 3.6 # 光ファイバーのコアの参考屈折率
         self.refraction_cl = 3.24 # クラッドの参考屈折率
@@ -71,6 +77,10 @@ class FDTD:
         self.frm_per_plot = 100 # 何フレームおきにプロットするか決める
 
     def set_mesh_num(self):
+        """
+        mesh数をマニュアルで決める関数
+        現在は使用していない
+        """
         #mesh
         self.n_meshx = 30
         self.n_meshy = 30
@@ -84,8 +94,12 @@ class FDTD:
         self.d_pml_z = self.refraction_idx.mesh_num.z/10.
     
     def set_start_idx(self, start):
+        """
+        BCを考える必要があるため、start分のメッシュ数だけシミュレーション範囲から除外する。
+
+        """
         #Start & End
-        self.xs = start
+        self.xs = start 
         self.ys = start
         self.zs = start
 
@@ -276,7 +290,9 @@ class FDTD:
                 - dt / (eps[xs:xe, ys:ye, zs:ze]*dy) * (self.H_nx[xs:xe, ys:ye, zs:ze] - self.H_nx[xs:xe, ys-1:ye-1, zs:ze])       
     
     def set_bc_mur1(self, t):
-        #Boundary Condition (Mur 1) for E-field
+        """
+        Boundary Condition (Mur 1) for E-field
+        """
         n_meshx = self.refraction_idx.mesh_num.x
         n_meshy = self.refraction_idx.mesh_num.y
         n_meshz = self.refraction_idx.mesh_num.z

@@ -21,15 +21,16 @@ class FDTD:
 
         self.set_physical_const()
         self.set_simulation_param()
-        self.set_mesh_num()
+        #self.set_mesh_num()
         #self.set_pml()
+
+        self.refraction_idx = refidx.RefractionIdx()
+        self.refraction_idx.set_refraction_from_img("./image/test_pat.tif", self.refraction_min, self.refraction_max)
 
         self.set_start_idx(1)
         self.set_end_idx()
 
-        self.refraction_idx = refidx.RefractionIdx(self)
-        self.refraction_idx.set_refraction_from_img("./image/test_pat.tif", self.refraction_min, self.refraction_max)
-        self.make_refraction_table(self.n_w, self.n_w2, self.refraction_min, self.refraction_max)
+        # self.make_refraction_table(self.n_w, self.n_w2, self.refraction_min, self.refraction_max)
         self.make_eps_table(self.eps_0)
 
         self.set_differential()
@@ -52,8 +53,8 @@ class FDTD:
 
     def set_simulation_param(self):
         #parameter
-        self.refraction_co = 3.6
-        self.refraction_cl = 3.24
+        self.refraction_co = 3.6 # 光ファイバーのコアの参考屈折率
+        self.refraction_cl = 3.24 # クラッドの参考屈折率
         self.w = 0.3 * 10**(-6)
         self.refraction_max = 1.2
         self.refraction_min = 1.
@@ -67,6 +68,8 @@ class FDTD:
         self.R_0 = 0.01 *10**(-2)
         self.mu = self.mu_0 #Not magnetic body
 
+        self.frm_per_plot = 100 # 何フレームおきにプロットするか決める
+
     def set_mesh_num(self):
         #mesh
         self.n_meshx = 30
@@ -76,9 +79,9 @@ class FDTD:
         self.n_w2= 30
 
     def set_pml(self):
-        self.d_pml_x = self.n_meshx/10.
-        self.d_pml_y = self.n_meshy/10.
-        self.d_pml_z = self.n_meshz/10.
+        self.d_pml_x = self.refraction_idx.mesh_num.x/10.
+        self.d_pml_y = self.refraction_idx.mesh_num.y/10.
+        self.d_pml_z = self.refraction_idx.mesh_num.z/10.
     
     def set_start_idx(self, start):
         #Start & End
@@ -87,16 +90,16 @@ class FDTD:
         self.zs = start
 
     def set_end_idx(self):
-        self.xe = self.n_meshx - self.xs
-        self.ye = self.n_meshy - self.ys
-        self.ze = self.n_meshz - self.zs
+        self.xe = self.refraction_idx.mesh_num.x - self.xs
+        self.ye = self.refraction_idx.mesh_num.y - self.ys
+        self.ze = self.refraction_idx.mesh_num.z - self.zs
 
 
 
     def make_refraction_table(self, n_w, n_w2, refraction_min, refraction_max):
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
+        n_meshx = self.refraction_idx.mesh_num.x
+        n_meshy = self.refraction_idx.mesh_num.y
+        n_meshz = self.refraction_idx.mesh_num.z
         n_w2 = self.n_w2
         refraction_min = self.refraction_min
         refraction_max = self.refraction_max
@@ -105,16 +108,16 @@ class FDTD:
         self.refraction_table[0:n_meshx, 0:n_meshy, n_meshz-n_w2:n_meshz] = refraction_max
 
     def make_eps_table(self, eps_0):
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
+        n_meshx = self.refraction_idx.mesh_num.x
+        n_meshy = self.refraction_idx.mesh_num.y
+        n_meshz = self.refraction_idx.mesh_num.z
         self.eps = np.zeros([n_meshx, n_meshy, n_meshz])
-        self.eps[0:n_meshx, 0:n_meshy, 0:n_meshz] = np.power(self.refraction_table[0:n_meshx, 0:n_meshy, 0:n_meshz], 2) * self.eps_0       
+        self.eps[0:n_meshx, 0:n_meshy, 0:n_meshz] = np.power(self.refraction_idx.table[0:n_meshx, 0:n_meshy, 0:n_meshz], 2) * self.eps_0       
 
     def set_differential(self):
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
+        n_meshx = self.refraction_idx.mesh_num.x
+        n_meshy = self.refraction_idx.mesh_num.y
+        n_meshz = self.refraction_idx.mesh_num.z
         area_x = self.area_x
         area_y = self.area_y
         area_z = self.area_z
@@ -124,9 +127,9 @@ class FDTD:
         self.dz = 2*area_z/n_meshz 
 
     def set_E_H_for_plot(self):
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
+        n_meshx = self.refraction_idx.mesh_num.x
+        n_meshy = self.refraction_idx.mesh_num.y
+        n_meshz = self.refraction_idx.mesh_num.z
         #for display
         self.H_ = np.zeros([n_meshx, n_meshy, n_meshz])
         self.E_max = []
@@ -154,9 +157,9 @@ class FDTD:
 
     def struct_eh_matrix(self):
         #Structing E&H matrix
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
+        n_meshx = self.refraction_idx.mesh_num.x
+        n_meshy = self.refraction_idx.mesh_num.y
+        n_meshz = self.refraction_idx.mesh_num.z
         self.E_0 = np.zeros([n_meshx, n_meshy, n_meshz])
         self.H_0 = np.zeros([n_meshx, n_meshy, n_meshz])
 
@@ -181,9 +184,9 @@ class FDTD:
         t= n*dt
         E_upd = f(E)
         """
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
+        n_meshx = self.refraction_idx.mesh_num.x
+        n_meshy = self.refraction_idx.mesh_num.y
+        n_meshz = self.refraction_idx.mesh_num.z
         self.E_nx = self.H_0
         self.E_ny = self.H_0
         self.E_nz = self.H_0
@@ -233,16 +236,18 @@ class FDTD:
             self.set_forced_occilation(t)
             self.set_bc_mur1(t)
             self.update(t)
-            self.plot_result(t)
+            if t % self.frm_per_plot == 1:
+                self.plot_result(t)
+            
         
     def set_forced_occilation(self, t):
         #Forced Oscillation
     #    for i in range(n_w, n_meshx-1-n_w): #Calc new E
     #          for j in range(n_w, n_meshy-1-n_w):
     #              E_nx[i, j, int(n_meshz/2.)] = math.sin(omega_0*t*dt)
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
+        n_meshx = self.refraction_idx.mesh_num.x
+        n_meshy = self.refraction_idx.mesh_num.y
+        n_meshz = self.refraction_idx.mesh_num.z
         xs = self.xs
         xe = self.xe
         ys = self.ys
@@ -254,7 +259,9 @@ class FDTD:
         dy = self.dy
         dz = self.dz
         eps = self.eps
-        self.E_nx[self.n_w:xe-self.n_w, self.n_w:ye-self.n_w, int(n_meshz/2.)] = np.sin(self.omega_0*t*dt)
+        start_pos_forced_osci = self.refraction_idx.mesh_num.x//3
+        end_pos_forced_osci = xe - start_pos_forced_osci
+        self.E_nx[start_pos_forced_osci:end_pos_forced_osci, start_pos_forced_osci:end_pos_forced_osci, int(n_meshz/2.)] = np.sin(self.omega_0*t*dt) # ここに好きな入力を与えられるようにする。
         
         self.E_nx1[xs:xe, ys:ye, zs:ze] = self.E_nx[xs:xe, ys:ye, zs:ze] \
                 + dt / (eps[xs:xe, ys:ye, zs:ze]*dy) * (self.H_nz[xs:xe, ys:ye, zs:ze] - self.H_nz[xs:xe, ys-1:ye-1, zs:ze]) \
@@ -270,9 +277,9 @@ class FDTD:
     
     def set_bc_mur1(self, t):
         #Boundary Condition (Mur 1) for E-field
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
+        n_meshx = self.refraction_idx.mesh_num.x
+        n_meshy = self.refraction_idx.mesh_num.y
+        n_meshz = self.refraction_idx.mesh_num.z
         xs = self.xs
         xe = self.xe
         ys = self.ys
@@ -307,17 +314,6 @@ class FDTD:
         self.E_nz1[xs:xe, ys:ye, n_meshz-1] = self.E_nz[xs:xe, ys:ye, n_meshz-2] +(c*dt-dz)/(c*dt+dz)*(self.E_nz1[xs:xe, ys:ye, n_meshz-2] - self.E_nz[xs:xe, ys:ye, n_meshy-1])
     
     def update(self, t):
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
-        xs = self.xs
-        xe = self.xe
-        ys = self.ys
-        ye = self.ye
-        zs = self.zs
-        ze = self.ze
-        dt = self.dt
-
         ### update E
         self.E_nx = self.E_nx1
         self.E_ny = self.E_ny1
@@ -356,9 +352,9 @@ class FDTD:
                 - dt / (mu*dx) * (self.E_ny[xs+1:xe+1, ys:ye, zs:ze] - self.E_ny[xs:xe, ys:ye, zs:ze]) 
 
     def plot_result(self, t):
-        n_meshx = self.n_meshx
-        n_meshy = self.n_meshy
-        n_meshz = self.n_meshz
+        n_meshx = self.refraction_idx.mesh_num.x
+        n_meshy = self.refraction_idx.mesh_num.y
+        n_meshz = self.refraction_idx.mesh_num.z
         xs = self.xs
         xe = self.xe
         ys = self.ys
